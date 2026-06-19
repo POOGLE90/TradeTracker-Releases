@@ -1,0 +1,121 @@
+name: Discord Release Announcement
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to announce, for example v1.0.4.
+        required: true
+        type: string
+      title:
+        description: Optional announcement title.
+        required: false
+        type: string
+      body:
+        description: Optional release body/highlights.
+        required: false
+        type: string
+      release_url:
+        description: Optional release URL.
+        required: false
+        type: string
+      mention_everyone:
+        description: Include the @everyone mention.
+        required: true
+        default: true
+        type: boolean
+      dry_run:
+        description: Build the Discord payload but do not post it.
+        required: true
+        default: true
+        type: boolean
+      post_prereleases:
+        description: Allow posting prerelease announcements.
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Post official release announcement to Discord
+        if: github.event_name == 'release'
+        env:
+          DISCORD_RELEASE_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
+          DISCORD_RELEASE_AVATAR_URL: ${{ vars.DISCORD_RELEASE_AVATAR_URL }}
+          DISCORD_RELEASE_LOGO_URL: ${{ vars.DISCORD_RELEASE_LOGO_URL }}
+          DISCORD_RELEASE_PROP_FIRM_FINDER_IMAGE_URL: ${{ vars.DISCORD_RELEASE_PROP_FIRM_FINDER_IMAGE_URL }}
+          DISCORD_RELEASE_PROP_FIRM_FINDER_IMAGE_PATH: docs/ops/assets/vantage-prop-firm-finder-board-discord.png
+          DISCORD_RELEASE_PROP_FIRM_PLAN_IMAGE_URL: ${{ vars.DISCORD_RELEASE_PROP_FIRM_PLAN_IMAGE_URL }}
+          DISCORD_RELEASE_PROP_FIRM_PLAN_IMAGE_PATH: docs/ops/assets/vantage-prop-firm-plan-screener-discord.png
+          DISCORD_RELEASE_PROP_FIRM_APP_IMAGE_URL: ${{ vars.DISCORD_RELEASE_PROP_FIRM_APP_IMAGE_URL }}
+          DISCORD_RELEASE_PROP_FIRM_APP_IMAGE_PATH: TradeTracker-Website/assets/images/screenshots/prop-firms.png
+          DISCORD_RELEASE_CHARTS_IMAGE_URL: ${{ vars.DISCORD_RELEASE_CHARTS_IMAGE_URL }}
+          DISCORD_RELEASE_CHARTS_IMAGE_PATH: TradeTracker-Website/assets/images/screenshots/charts.png
+          DISCORD_RELEASE_RECOVERY_IMAGE_URL: ${{ vars.DISCORD_RELEASE_RECOVERY_IMAGE_URL }}
+          DISCORD_RELEASE_RECOVERY_IMAGE_PATH: docs/ops/assets/vantage-recovery-backups-discord.png
+          DISCORD_RELEASE_UPDATER_IMAGE_URL: ${{ vars.DISCORD_RELEASE_UPDATER_IMAGE_URL }}
+          DISCORD_RELEASE_UPDATER_IMAGE_PATH: docs/ops/assets/vantage-software-updates-discord.png
+          DISCORD_RELEASE_USERNAME: ${{ vars.DISCORD_RELEASE_USERNAME }}
+          DISCORD_ALLOW_EVERYONE: "true"
+          DISCORD_DRY_RUN: "false"
+          DISCORD_POST_PRERELEASES: "false"
+          DISCORD_RELEASE_PAYLOAD_PATH: tmp/discord-release-payload.json
+          VANTAGE_WEBSITE_URL: ${{ vars.VANTAGE_WEBSITE_URL }}
+          VANTAGE_DOWNLOAD_URL: ${{ vars.VANTAGE_DOWNLOAD_URL }}
+          VANTAGE_MANAGE_LICENSE_URL: ${{ vars.VANTAGE_MANAGE_LICENSE_URL }}
+        run: node scripts/discord-release-announcement.mjs
+
+      - name: Build or post manual Discord announcement
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          DISCORD_RELEASE_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
+          DISCORD_RELEASE_AVATAR_URL: ${{ vars.DISCORD_RELEASE_AVATAR_URL }}
+          DISCORD_RELEASE_LOGO_URL: ${{ vars.DISCORD_RELEASE_LOGO_URL }}
+          DISCORD_RELEASE_PROP_FIRM_FINDER_IMAGE_URL: ${{ vars.DISCORD_RELEASE_PROP_FIRM_FINDER_IMAGE_URL }}
+          DISCORD_RELEASE_PROP_FIRM_FINDER_IMAGE_PATH: docs/ops/assets/vantage-prop-firm-finder-board-discord.png
+          DISCORD_RELEASE_PROP_FIRM_PLAN_IMAGE_URL: ${{ vars.DISCORD_RELEASE_PROP_FIRM_PLAN_IMAGE_URL }}
+          DISCORD_RELEASE_PROP_FIRM_PLAN_IMAGE_PATH: docs/ops/assets/vantage-prop-firm-plan-screener-discord.png
+          DISCORD_RELEASE_PROP_FIRM_APP_IMAGE_URL: ${{ vars.DISCORD_RELEASE_PROP_FIRM_APP_IMAGE_URL }}
+          DISCORD_RELEASE_PROP_FIRM_APP_IMAGE_PATH: TradeTracker-Website/assets/images/screenshots/prop-firms.png
+          DISCORD_RELEASE_CHARTS_IMAGE_URL: ${{ vars.DISCORD_RELEASE_CHARTS_IMAGE_URL }}
+          DISCORD_RELEASE_CHARTS_IMAGE_PATH: TradeTracker-Website/assets/images/screenshots/charts.png
+          DISCORD_RELEASE_RECOVERY_IMAGE_URL: ${{ vars.DISCORD_RELEASE_RECOVERY_IMAGE_URL }}
+          DISCORD_RELEASE_RECOVERY_IMAGE_PATH: docs/ops/assets/vantage-recovery-backups-discord.png
+          DISCORD_RELEASE_UPDATER_IMAGE_URL: ${{ vars.DISCORD_RELEASE_UPDATER_IMAGE_URL }}
+          DISCORD_RELEASE_UPDATER_IMAGE_PATH: docs/ops/assets/vantage-software-updates-discord.png
+          DISCORD_RELEASE_USERNAME: ${{ vars.DISCORD_RELEASE_USERNAME }}
+          DISCORD_RELEASE_TAG: ${{ inputs.tag }}
+          DISCORD_RELEASE_TITLE: ${{ inputs.title }}
+          DISCORD_RELEASE_BODY: ${{ inputs.body }}
+          DISCORD_RELEASE_URL: ${{ inputs.release_url }}
+          DISCORD_ALLOW_EVERYONE: ${{ inputs.mention_everyone }}
+          DISCORD_DRY_RUN: ${{ inputs.dry_run }}
+          DISCORD_POST_PRERELEASES: ${{ inputs.post_prereleases }}
+          DISCORD_RELEASE_PAYLOAD_PATH: tmp/discord-release-payload.json
+          VANTAGE_WEBSITE_URL: ${{ vars.VANTAGE_WEBSITE_URL }}
+          VANTAGE_DOWNLOAD_URL: ${{ vars.VANTAGE_DOWNLOAD_URL }}
+          VANTAGE_MANAGE_LICENSE_URL: ${{ vars.VANTAGE_MANAGE_LICENSE_URL }}
+        run: node scripts/discord-release-announcement.mjs
+
+      - name: Add payload preview to workflow summary
+        if: always()
+        run: |
+          if [ -f tmp/discord-release-payload.json ]; then
+            echo '### Discord release payload' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat tmp/discord-release-payload.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
